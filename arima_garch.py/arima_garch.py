@@ -94,3 +94,24 @@ plt.plot(hist_testing, label='actual')
 plt.fill_between(hist_testing.index, return_lb.values.reshape([-1]), return_ub.values.reshape([-1]), color='gray', alpha=0.7)
 plt.legend()
 plt.show()
+
+from arch import arch_model
+dict_aic={}
+for l in range (5):
+    for p in range(1,5):
+        for q in range(1,5):
+            try:
+                split_date = hist_ret.index[-45]
+                model = arch_model(hist_ret, mean='ARX', lags=l, vol='Garch', p=p, o=0, q=q, dist='Normal')
+                res = model.fit(last_obs=split_date)
+                dict_aic[(l, p, q)] = res.aic
+            except:
+                pass
+
+df_aic = pd.DataFrame.from_dict(dict_aic, orient='index', columns=['aic'])
+l, p, q = df_aic[df_aic.aic == df_aic.aic.min()].index[0]
+print(f'ARIMA-GARCH order is ({l}, {p}, {q})')
+
+# model fit
+model = arch_model(hist_ret, mean='ARX', lags=l, vol='Garch', p=p, o=0, q=q, dist='Normal')
+res = model.fit(last_obs=split_date)
