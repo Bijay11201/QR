@@ -115,3 +115,23 @@ print(f'ARIMA-GARCH order is ({l}, {p}, {q})')
 # model fit
 model = arch_model(hist_ret, mean='ARX', lags=l, vol='Garch', p=p, o=0, q=q, dist='Normal')
 res = model.fit(last_obs=split_date)
+res.summary()
+res.plot(annualize='D')
+std_resid = res.resid / res.conditional_volatility
+std_resid.dropna(inplace=True)
+
+sm.qqplot(std_resid, line='s')
+stat, p = normaltest(std_resid)
+print(f'Statistics={stat:.3f}, p={p:.3f}')       # H0: Gaussian
+stat, p = shapiro(std_resid)
+print(f'Statistics={stat:.3f}, p={p:.3f}')       # H0: Gaussian
+forecasts = res.forecast(horizon=1, start=split_date)
+
+conf = np.sqrt(forecasts.variance[split_date:])*1.96
+
+plt.figure(figsize=(12, 5))
+plt.plot(forecasts.mean[split_date:], label='one step rolling')
+plt.plot(hist_ret[split_date:], label='actual')
+plt.fill_between(hist_ret[split_date:].index, (forecasts.mean[split_date:]-conf).values.reshape(-1), (forecasts.mean[split_date:]+conf).values.reshape(-1), color='gray', alpha=0.7)
+plt.legend()
+plt.show()
